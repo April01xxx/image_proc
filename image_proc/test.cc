@@ -68,6 +68,7 @@ main(int argc, char *argv[])
   size_t n = GetFileList(argv[1], "*.jpg", filenames);
   Mat image;
   Mat dst;
+  double duration;
   if (n > 0) {
     for (auto i = 0; i < filenames.size(); ++i) {
       image = imread(argv[1] + filenames[i], CV_LOAD_IMAGE_GRAYSCALE);
@@ -78,7 +79,11 @@ main(int argc, char *argv[])
       /* 经过调试,thresh取值15即可(更小也可以),关于全局阈值的选取可以
          考虑使用最大类间方差法cv::THRESH_OTSU和三角形算法cv::THRESH_TRIANGLE
       */
+	  duration = static_cast<double>(cv::getTickCount);
       dst = ImagePreprocess(image, thresh, 20);
+	  duration = static_cast<double>(cv::getTickCount) - duration;
+	  duration /= cv::getTickFrequency();	//< 以毫秒为单位
+	  cout << filenames[i] << " cost: " << duration << endl;
     }
   }
   else {
