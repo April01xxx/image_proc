@@ -55,7 +55,7 @@ ImagePreprocess(const Mat& src, double thresh, int epsilon) {
   RotatedRect r = ImageFilter(morph_image, epsilon);
    // 裁剪出旋转矩形区域并转正
   Point2f vertices[4], dst_vertices[4];
-  
+
   r.points(vertices);
   /* opencv实现中points方法返回旋转矩形的4个顶点以顺时针方向存储:
      bottom -> left -> top -> right
@@ -86,7 +86,6 @@ ImageFilter(Mat& src, int epsilon) {
 
   typedef vector<vector<Point>>::size_type Index;
 
-  Mat copy = src.clone();
   // 只保存最外围的轮廓的顶点信息
   findContours(src, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point());
   // 寻找最大的轮廓,不考虑一张图片里面出现多个包裹的情况
