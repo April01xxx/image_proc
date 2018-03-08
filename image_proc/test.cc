@@ -52,16 +52,16 @@ main(int argc, char *argv[])
 
     switch (edge_type)
     {
-      case EDGE_SOBEL:
-        flag = false;
-        break;
-      case EDGE_CANNY:
-        cout << "请输入Canny算子的两个阈值,以空格区分: ";
-        cin >> thresh1, thresh2;
-        flag = false;
-        break;
-      default:
-        cout << "边缘检测算子类型错误,请检测后重新输入!\n" << endl;
+    case EDGE_SOBEL:
+      flag = false;
+      break;
+    case EDGE_CANNY:
+      cout << "请输入Canny算子的两个阈值,以空格区分: ";
+      cin >> thresh1, thresh2;
+      flag = false;
+      break;
+    default:
+      cout << "边缘检测算子类型错误,请检测后重新输入!\n" << endl;
     }
   }
   vector<string> filenames;
@@ -78,12 +78,12 @@ main(int argc, char *argv[])
       }
       /* 经过调试,thresh取值15即可(更小也可以),关于全局阈值的选取可以
          考虑使用最大类间方差法cv::THRESH_OTSU和三角形算法cv::THRESH_TRIANGLE
-      */
-	  duration = static_cast<double>(cv::getTickCount);
+         */
+      duration = static_cast<double>(cv::getTickCount);
       dst = ImagePreprocess(image, thresh, 20);
-	  duration = static_cast<double>(cv::getTickCount) - duration;
-	  duration /= cv::getTickFrequency();	//< 以毫秒为单位
-	  cout << filenames[i] << " cost: " << duration << endl;
+      duration = static_cast<double>(cv::getTickCount) - duration;
+      duration /= cv::getTickFrequency();	//< 以毫秒为单位
+      cout << filenames[i] << " cost: " << duration << endl;
     }
   }
   else {
