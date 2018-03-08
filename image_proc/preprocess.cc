@@ -15,7 +15,6 @@
 
 #include "preprocess.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
-#include <iostream> //< for debug
 
 using std::vector;
 using cv::Mat;
@@ -25,6 +24,9 @@ using cv::RotatedRect;
 using cv::Point2f;
 using cv::Scalar;
 using cv::RNG;
+using cv::Vec4i;
+using cv::getPerspectiveTransform;
+using cv::warpPerspective;
 
 /*!
  *  \brief    图像预处理
@@ -33,11 +35,12 @@ using cv::RNG;
  *  前景图像
  *  \param    [in]  src    待处理的原图像
  *  \param    [in]  thresh    去除黑色背景区域的阈值,可以取小一点
+ *  \param    [in]  epsilon   多边形逼近精度
  *  \return   处理后的图像
  *  \retval   Mat
  */
 Mat
-ImagePreprocess(const Mat& src, double thresh) {
+ImagePreprocess(const Mat& src, double thresh, int epsilon) {
   Mat gauss_image;
   Mat thresh_image;
   Mat morph_image;
@@ -49,29 +52,49 @@ ImagePreprocess(const Mat& src, double thresh) {
   /* 图像预处理阶段,先膨胀后腐蚀去除区域内的孤立区域,使轮廓连续光滑. */
   morphologyEx(thresh_image, morph_image, CV_MOP_CLOSE, element);
 
-  return morph_image;
+  RotatedRect r = ImageFilter(morph_image, epsilon);
+   // 裁剪出旋转矩形区域并转正
+  Point2f vertices[4], dst_vertices[4];
+  
+  r.points(vertices);
+  /* opencv实现中points方法返回旋转矩形的4个顶点以顺时针方向存储:
+     bottom -> left -> top -> right
+  */
+  dst_vertices[0] = Point2f(0, r.size.height);
+  dst_vertices[1] = Point2f(0, 0);
+  dst_vertices[2] = Point2f(r.size.width, 0);
+  dst_vertices[3] = Point2f(r.size.width, r.size.height);
+
+  Mat map_matrix = getPerspectiveTransform(vertices, dst_vertices);
+  Mat roi;
+  warpPerspective(src, roi, map_matrix, r.size);
+
+  return roi;
 }
 
 /*!
  *  \brief    图像的进一步处理
  *  对预处理后的图像用多边形逼近其轮廓裁剪掉边角,过滤掉面积过小的轮廓
- *  \param    [in]  image   预处理后的图像
+ *  \param    [in]  src     预处理后的图像
  *  \param    [in]  epsilon 曲线逼近的精度
- *  \return   无
- *  \retval   void
+ *  \return   最大轮廓的最小外接矩形
+ *  \retval   cv::RotatedRect
  */
-void ImageFilter(Mat& image, int epsilon) {
+RotatedRect
+ImageFilter(Mat& src, int epsilon) {
   vector<vector<Point>> contours; //< 预处理图像的轮廓
 
   typedef vector<vector<Point>>::size_type Index;
 
+  Mat copy = src.clone();
   // 只保存最外围的轮廓的顶点信息
-  findContours(image, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point());
+  findContours(src, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point());
   // 寻找最大的轮廓,不考虑一张图片里面出现多个包裹的情况
   RotatedRect rotate, max_rotate;
   float max_area = 0.0f;
   Index idx;
   for (Index i = 0; i < contours.size(); ++i) {
+    // opencv的实现会先计算出点集的凸包然后利用Rotating calipers算法求解
     rotate = minAreaRect(contours[i]);
     if (rotate.size.area() > max_area) {
       max_area = rotate.size.area();
@@ -80,21 +103,7 @@ void ImageFilter(Mat& image, int epsilon) {
     }
   }
 
-  // 调试时画出最小外接矩形和逼近的多边形
-  Mat drawing = Mat::zeros(image.size(), CV_8UC3);  //< 用来画图
-  RNG rng(12345); //< 颜色随机数
-  Scalar color(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
-  Point2f vertices[4];
-  max_rotate.points(vertices);
-  for (int j = 0; j < 4; ++j)
-    line(drawing, vertices[j], vertices[(j + 1) % 4], color, 8);
-
-  vector<Point> hull(contours[idx].size());  //< 轮廓的凸包
-  vector<Point> poly(contours[idx].size()); //< 凸包的多边形逼近,裁剪边角
-  convexHull(contours[idx], hull);
-  approxPolyDP(hull, poly, epsilon, true);
-  // 画出所有的轮廓
-  drawContours(drawing, poly, -1, color, 8);
+  return max_rotate;
 }
 /*!
  *  \brief    Sobel边缘检测

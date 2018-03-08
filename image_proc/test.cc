@@ -35,7 +35,7 @@ int
 main(int argc, char *argv[])
 {
   if (argc != 2) {
-    cout << "Usage: test ImageName" << endl;
+    cout << "Usage: test <path>" << endl;
     return -1;
   }
 
@@ -78,10 +78,7 @@ main(int argc, char *argv[])
       /* 经过调试,thresh取值15即可(更小也可以),关于全局阈值的选取可以
          考虑使用最大类间方差法cv::THRESH_OTSU和三角形算法cv::THRESH_TRIANGLE
       */
-      dst = ImagePreprocess(image, thresh);
-
-      // 预处理后对图像进行进一步过滤
-      ImageFilter(dst, 3);
+      dst = ImagePreprocess(image, thresh, 20);
     }
   }
   else {
