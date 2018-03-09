@@ -19,9 +19,13 @@
 #define __MISC_HPP__
 #include <vector>
 #include <string>
+#include <opencv2/core/core.hpp>
 
 //! 获取指定路径下指定后缀文件名称列表
 size_t GetFileList(const std::string& path,
                  const std::string& extent,
                  std::vector<std::string>& lst);
+
+//! 绘制灰度直方图
+void DrawHistogram(const cv::Mat& input);
 #endif // __MISC_HPP__

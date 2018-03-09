@@ -29,8 +29,8 @@ enum EdgeDetectionType
 //! 图像简单二值化,将图像中无意义的黑色背景区域去除
 cv::Mat ImagePreprocess(const cv::Mat& src, double thresh, int epsilon);
 
-//! 图像过滤,找出面积最大的轮廓并返回其最小外接矩形
-cv::RotatedRect ImageFilter(cv::Mat& src, int epsilon);
+//! 从预处理之后的图片中截取出包含13位条形码和客户信息的面单
+cv::Mat CutWaybill(const cv::Mat& input, int edge_type, double thresh1, double thresh2);
 
 //! 边缘检测,提供Sobel和Canny两种选择
 void EdgeDetection(const cv::Mat& src,

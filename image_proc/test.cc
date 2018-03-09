@@ -43,12 +43,12 @@ main(int argc, char *argv[])
   cout << "请输入图像预处理的阈值: ";
   cin >> thresh;
   int edge_type;
+  double thresh1 = 70, thresh2 = 100;
   bool flag = true;
 
   while (flag) {
     cout << "请输入边缘检测算子类型(0-Sobel算子,1-Canny算子): ";
     cin >> edge_type;
-    double thresh1, thresh2;
 
     switch (edge_type)
     {
@@ -68,6 +68,7 @@ main(int argc, char *argv[])
   size_t n = GetFileList(argv[1], "*.jpg", filenames);
   Mat image;
   Mat dst;
+  Mat waybill;
   double duration;
   if (n > 0) {
     for (auto i = 0; i < filenames.size(); ++i) {
@@ -76,14 +77,16 @@ main(int argc, char *argv[])
         cout << "Could not find " << filenames[i] << endl;
         continue;
       }
-      /* 经过调试,thresh取值15即可(更小也可以),关于全局阈值的选取可以
+
+      /* 经过查看原图的灰度直方图,发现阈值选取为15比较合适,关于全局阈值的选取可以
          考虑使用最大类间方差法cv::THRESH_OTSU和三角形算法cv::THRESH_TRIANGLE
          */
-      duration = static_cast<double>(cv::getTickCount);
+      duration = static_cast<double>(cv::getTickCount());
       dst = ImagePreprocess(image, thresh, 20);
-      duration = static_cast<double>(cv::getTickCount) - duration;
-      duration /= cv::getTickFrequency();	//< 以毫秒为单位
-      cout << filenames[i] << " cost: " << duration << endl;
+      waybill = CutWaybill(dst, edge_type, thresh1, thresh2);
+      duration = static_cast<double>(cv::getTickCount()) - duration;
+      duration /= cv::getTickFrequency();	//< 以秒为单位
+      cout << filenames[i] << " cost: " << duration << "s" << endl;
     }
   }
   else {
