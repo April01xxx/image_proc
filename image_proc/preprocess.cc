@@ -132,16 +132,16 @@ ImagePreprocess(const Mat& src, double thresh, int epsilon) {
  */
 Mat
 CutWaybill(const Mat& input, int edge_type, double thresh1, double thresh2) {
-  Mat waybill;
+  Mat waybill = input;
 
   // 去除灰度值小于某一阈值的点(边缘信息的强度较高
-  GaussianBlur(waybill, waybill, Size(3, 3), 0);
-  threshold(waybill, waybill, 50, 0, CV_THRESH_TOZERO);
-  EdgeDetection(input, edge_type, thresh1, thresh2, waybill);
+  // 考虑面单为四边形且对于X/Y方向梯度变化明显,先采用Sobel算子计算边缘
+  EdgeDetection(waybill, edge_type, thresh1, thresh2, waybill);
 
   Mat copy = waybill.clone();
   cvtColor(copy, copy, CV_GRAY2BGR);
 
+  GaussianBlur(waybill, waybill, Size(3, 3), 0);
   threshold(waybill, waybill, 50, 0, CV_THRESH_TOZERO);
   EdgeDetection(waybill, EDGE_CANNY, 60, 180, waybill);
 
