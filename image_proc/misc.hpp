@@ -28,4 +28,7 @@ size_t GetFileList(const std::string& path,
 
 //! 绘制灰度直方图
 void DrawHistogram(const cv::Mat& input);
+
+//! 绘制四边形
+void DrawQuardrangle(cv::Mat& image, const std::vector<std::vector<cv::Point>>& quardrangles);
 #endif // __MISC_HPP__

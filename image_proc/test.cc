@@ -69,6 +69,7 @@ main(int argc, char *argv[])
   Mat image;
   Mat dst;
   Mat waybill;
+  vector<vector<Point>> quardrangles;
   double duration;
   if (n > 0) {
     for (auto i = 0; i < filenames.size(); ++i) {
@@ -83,6 +84,7 @@ main(int argc, char *argv[])
          */
       duration = static_cast<double>(cv::getTickCount());
       dst = ImagePreprocess(image, thresh, 20);
+      FindQuardrangles(dst, quardrangles);
       waybill = CutWaybill(dst, edge_type, thresh1, thresh2);
       duration = static_cast<double>(cv::getTickCount()) - duration;
       duration /= cv::getTickFrequency();	//< 以秒为单位

@@ -69,6 +69,48 @@ ImageFilter(Mat& src, int epsilon) {
   return max_rotate;
 }
 
+/*!
+ *  \brief    Sobel边缘检测
+ *
+ *  采用OpenCV提供的方法进行Sobel边缘检测
+ *  \param    [in]  src    待进行边缘检测的图像
+ *  \return   边缘检测后的图像
+ *  \retval   Mat
+ */
+static Mat
+SobelEdgeDetection(const Mat& src) {
+  int scale = 1;
+  int delta = 0;
+  int ddepth = CV_16S;
+  Mat grad_x, grad_y;
+  Mat abs_grad_x, abs_grad_y;
+
+  // Gradient X
+  Sobel(src, grad_x, ddepth, 1, 0, 3, scale, delta, cv::BORDER_DEFAULT);
+  convertScaleAbs(grad_x, abs_grad_x);
+  // Gradient Y
+  Sobel(src, grad_y, ddepth, 0, 1, 3, scale, delta, cv::BORDER_DEFAULT);
+  convertScaleAbs(grad_y, abs_grad_y);
+
+  return abs_grad_x + abs_grad_y;
+}
+
+/*!
+ *  \brief    Canny边缘检测
+ *
+ *  利用OpenCV提供的方法进行Canny边缘检测
+ *  \param    [in]  src    待进行边缘检测的图像
+ *  \param    [in] thresh1    Canny检测阈值
+ *  \param    [in] thresh2    Canny检测阈值
+ *  \return   检测到的边缘图像
+ *  \retval   Mat
+ */
+static Mat
+CannyEdgeDetection(const Mat& src, double thresh1, double thresh2) {
+  Mat edges;
+  Canny(src, edges, thresh1, thresh2, 3);
+  return edges;
+}
 
 /*!
  *  \brief    图像预处理
@@ -92,7 +134,7 @@ ImagePreprocess(const Mat& src, double thresh, int epsilon) {
 
   /* 只是粗略的处理,可以对原图缩小后处理,截取时转回原尺寸.
      当返回的外接矩形部分区域在图像外时会出现截取过多的情况
-  */
+     */
   resize(src, gauss_image, Size(0, 0), fx, fy, CV_INTER_LINEAR);
 
   GaussianBlur(gauss_image, gauss_image, Size(3, 3), 0);
@@ -108,7 +150,7 @@ ImagePreprocess(const Mat& src, double thresh, int epsilon) {
   r.points(vertices);
   /* opencv实现中points方法返回旋转矩形的4个顶点以顺时针方向存储:
      bottom -> left -> top -> right
-  */
+     */
   dst_vertices[0] = Point2f(0, r.size.height);
   dst_vertices[1] = Point2f(0, 0);
   dst_vertices[2] = Point2f(r.size.width, 0);
@@ -119,6 +161,75 @@ ImagePreprocess(const Mat& src, double thresh, int epsilon) {
   warpPerspective(src, roi, map_matrix, r.size);
 
   return roi;
+}
+
+/*!
+ *  \brief    找出图像中的四边形
+ *  \param    [in]    image   输入图像,要求是灰度图像
+ *  \param    [out]   quardrangle   找到的四边形的顶点坐标
+ *  \return   无
+ *  \retval   void
+ */
+void FindQuardrangles(const cv::Mat& image, std::vector<std::vector<cv::Point>>& quardrangles) {
+  int thresh = 70;  //< Canny算子的阈值
+  int N = 11;       //< 尝试不同的阈值
+  Mat pyr, timg, gray, draw;
+  quardrangles.clear();
+
+  // 高斯金字塔去除噪声
+  cv::pyrDown(image, pyr, Size(image.cols / 2, image.rows / 2));
+  cv::pyrUp(pyr, timg, image.size());
+  //GaussianBlur(image, timg, Size(5, 5), 0);
+  // 尝试不同的阈值
+  for (int l = 0; l < N; ++l) {
+    draw = image.clone();
+    cvtColor(draw, draw, CV_GRAY2BGR);
+    // 第一次用Canny算子检查边缘
+    if (l == 0) {
+      Canny(timg, gray, 0, thresh, 5);  //< 低阈值设置为0迫使边缘融合
+      cv::dilate(gray, gray, Mat(), Point(-1, -1));
+    } else {
+      // 用不同的阈值二值化
+      // tgray(x,y) = gray(x,y) < (l+1)*255/N ? 255 : 0
+      gray = timg >= (l + 1) * 255 / N;
+      EdgeDetection(gray, EDGE_CANNY, 60, 180, gray);
+      cv::dilate(gray, gray, Mat(), Point(-1, -1));
+      vector<Vec4i> lines;
+      HoughLinesP(gray, lines, 1, CV_PI / 180, 100, 100, 50);
+      for (size_t i = 0; i < lines.size(); i++) {
+        Vec4i l = lines[i];
+        Scalar color(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+        line(draw, Point(l[0], l[1]), Point(l[2], l[3]), color, 8, CV_AA);
+      }
+    }
+
+    vector<vector<Point> > contours;
+    // 寻找轮廓,只包含外围轮廓的顶点信息
+    findContours(gray, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+
+    vector<Point> approx;
+    // 检查每个轮廓是否满足条件
+    for (size_t i = 0; i < contours.size(); ++i) {
+      // 轮廓逼近,逼近的进度由轮廓的长度控制
+      approxPolyDP(Mat(contours[i]), approx, cv::arcLength(Mat(contours[i]), true)*0.05, true);
+      // cv::convexHull(approx, approx, true);
+      // 判断得到的轮廓是否满足条件
+      // 有4个顶点且为凸多边形,通过面积大小过滤掉一部分区域
+      // 放宽条件,顶点数在[4,8]之间都可以接受
+      if (approx.size() >= 4 &&
+        approx.size() <= 8 &&
+        fabs(contourArea(Mat(approx))) >= 250000 &&
+        cv::isContourConvex(Mat(approx))) {
+        quardrangles.push_back(approx);
+
+        // 画出折线
+        const Point* p = &approx[0];
+        int n = (int)approx.size();
+        Scalar color(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+        polylines(draw, &p, &n, 1, true, color, 16, CV_AA);
+      }
+    }
+  }
 }
 
 /*!
@@ -162,48 +273,6 @@ CutWaybill(const Mat& input, int edge_type, double thresh1, double thresh2) {
   return waybill;
 }
 
-/*!
- *  \brief    Sobel边缘检测
- *
- *  采用OpenCV提供的方法进行Sobel边缘检测
- *  \param    [in]  src    待进行边缘检测的图像
- *  \return   边缘检测后的图像
- *  \retval   Mat
- */
-static Mat
-SobelEdgeDetection(const Mat& src) {
-  int scale = 1;
-  int delta = 0;
-  int ddepth = CV_16S;
-  Mat grad_x, grad_y;
-  Mat abs_grad_x, abs_grad_y;
-
-  // Gradient X
-  Sobel(src, grad_x, ddepth, 1, 0, 3, scale, delta, cv::BORDER_DEFAULT);
-  convertScaleAbs(grad_x, abs_grad_x);
-  // Gradient Y
-  Sobel(src, grad_y, ddepth, 0, 1, 3, scale, delta, cv::BORDER_DEFAULT);
-  convertScaleAbs(grad_y, abs_grad_y);
-
-  return abs_grad_x + abs_grad_y;
-}
-
-/*!
- *  \brief    Canny边缘检测
- *
- *  利用OpenCV提供的方法进行Canny边缘检测
- *  \param    [in]  src    待进行边缘检测的图像
- *  \param    [in] thresh1    Canny检测阈值
- *  \param    [in] thresh2    Canny检测阈值
- *  \return   检测到的边缘图像
- *  \retval   Mat
- */
-static Mat
-CannyEdgeDetection(const Mat& src, double thresh1, double thresh2) {
-  Mat edges;
-  Canny(src, edges, thresh1, thresh2, 3);
-  return edges;
-}
 
 /*!
  *  \brief    边缘检测

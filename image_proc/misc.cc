@@ -17,7 +17,8 @@
 #include <string>
 #include <vector>
 #include <opencv2/contrib/contrib.hpp>
-#include<opencv2/imgproc/imgproc.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/core/core.hpp>
 
 using std::string;
 using std::vector;
@@ -28,6 +29,7 @@ using cv::Point;
 using cv::calcHist;
 using cv::line;
 using cv::minMaxLoc;
+using cv::polylines;
 
 /*!
  *  \brief      读取指定路径下指定后缀的文件名称
@@ -82,5 +84,16 @@ DrawHistogram(const Mat& input) {
     float binValue = hist.at<float>(i);           //   注意hist中是float类型      
     int realValue = static_cast<int>(binValue * hpt / maxValue);
     line(dstImage, Point(i*scale, hist_size - 1), Point((i + 1)*scale - 1, hist_size - realValue), Scalar(255));
+  }
+}
+
+void
+DrawQuardrangle(Mat& image, const vector<vector<Point> >& quardrangles)
+{
+  for (size_t i = 0; i < quardrangles.size(); i++)
+  {
+    const Point* p = &quardrangles[i][0];
+    int n = (int)quardrangles[i].size();
+    polylines(image, &p, &n, 1, true, Scalar(255, 0, 0), 16, CV_AA);
   }
 }

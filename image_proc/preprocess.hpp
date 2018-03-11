@@ -29,6 +29,9 @@ enum EdgeDetectionType
 //! 图像简单二值化,将图像中无意义的黑色背景区域去除
 cv::Mat ImagePreprocess(const cv::Mat& src, double thresh, int epsilon);
 
+//! 找出图像中的四边形
+void FindQuardrangles(const cv::Mat& image, std::vector<std::vector<cv::Point>>& quardrangles);
+
 //! 从预处理之后的图片中截取出包含13位条形码和客户信息的面单
 cv::Mat CutWaybill(const cv::Mat& input, int edge_type, double thresh1, double thresh2);
 
