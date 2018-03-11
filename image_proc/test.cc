@@ -85,6 +85,7 @@ main(int argc, char *argv[])
       duration = static_cast<double>(cv::getTickCount());
       dst = ImagePreprocess(image, thresh, 20);
       FindQuardrangles(dst, quardrangles);
+      DrawQuardrangle(dst, quardrangles);
       waybill = CutWaybill(dst, edge_type, thresh1, thresh2);
       duration = static_cast<double>(cv::getTickCount()) - duration;
       duration /= cv::getTickFrequency();	//< 以秒为单位

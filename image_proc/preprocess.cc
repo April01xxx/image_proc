@@ -170,7 +170,8 @@ ImagePreprocess(const Mat& src, double thresh, int epsilon) {
  *  \return   无
  *  \retval   void
  */
-void FindQuardrangles(const cv::Mat& image, std::vector<std::vector<cv::Point>>& quardrangles) {
+void
+FindQuardrangles(const cv::Mat& image, std::vector<std::vector<cv::Point>>& quardrangles) {
   int thresh = 70;  //< Canny算子的阈值
   int N = 11;       //< 尝试不同的阈值
   Mat pyr, timg, gray, draw;
@@ -192,7 +193,7 @@ void FindQuardrangles(const cv::Mat& image, std::vector<std::vector<cv::Point>>&
       // 用不同的阈值二值化
       // tgray(x,y) = gray(x,y) < (l+1)*255/N ? 255 : 0
       gray = timg >= (l + 1) * 255 / N;
-      EdgeDetection(gray, EDGE_CANNY, 60, 180, gray);
+      EdgeDetection(gray, EDGE_SOBEL, 60, 180, gray);
       cv::dilate(gray, gray, Mat(), Point(-1, -1));
       vector<Vec4i> lines;
       HoughLinesP(gray, lines, 1, CV_PI / 180, 100, 100, 50);

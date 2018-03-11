@@ -10,7 +10,7 @@
  *  |    Date     |   Version   |    Author   | Description |
  *  |-------------|-------------|-------------|-------------|
  *  | 2018/03/06  |     1.0     | lancer wong | Create      |
- *  
+ *
  */
 
 #include "misc.hpp"
@@ -44,8 +44,8 @@ using cv::polylines;
  */
 size_t
 GetFileList(const string& path,
-            const string& extent,
-            vector<string>& lst) {
+const string& extent,
+vector<string>& lst) {
   if (path.empty() || extent.empty())
     return 0;
 
@@ -77,10 +77,9 @@ DrawHistogram(const Mat& input) {
   double minValue = 0;
   double maxValue = 0;
   minMaxLoc(hist, &minValue, &maxValue, 0, 0);  //  在cv中用的是cvGetMinMaxHistValue  
-                                                   //绘制出直方图  
+  //绘制出直方图  
   int hpt = static_cast<int>(0.9 * hist_size);
-  for (int i = 0; i < 256; i++)
-  {
+  for (int i = 0; i < 256; i++) {
     float binValue = hist.at<float>(i);           //   注意hist中是float类型      
     int realValue = static_cast<int>(binValue * hpt / maxValue);
     line(dstImage, Point(i*scale, hist_size - 1), Point((i + 1)*scale - 1, hist_size - realValue), Scalar(255));
@@ -90,8 +89,7 @@ DrawHistogram(const Mat& input) {
 void
 DrawQuardrangle(Mat& image, const vector<vector<Point> >& quardrangles)
 {
-  for (size_t i = 0; i < quardrangles.size(); i++)
-  {
+  for (size_t i = 0; i < quardrangles.size(); i++) {
     const Point* p = &quardrangles[i][0];
     int n = (int)quardrangles[i].size();
     polylines(image, &p, &n, 1, true, Scalar(255, 0, 0), 16, CV_AA);
